@@ -18,6 +18,7 @@ pub fn pngToPalette(dataPointer: [*]const u8, dataLen: usize) ![]const u32 {
     var w : u32 = 0;
     var h : u32 = 0;
     var colorType : u8 = 0;
+    var zlibLen : u32 = 0;
 
     while(pos < dataLen) {
         const chunkLen = parseU32be(data, pos);
@@ -40,9 +41,10 @@ pub fn pngToPalette(dataPointer: [*]const u8, dataLen: usize) ![]const u32 {
                 pos += 1;
                 colorType = data[pos];
                 pos += 1;
-                //compression method
+                const compressionMode = data[pos];
+                assert(compressionMode == 0); //zlib
                 pos += 1;
-                //filter method
+                //filter method todo: must have
                 pos += 1;
                 //interlace method
                 pos += 1;
@@ -59,6 +61,11 @@ pub fn pngToPalette(dataPointer: [*]const u8, dataLen: usize) ![]const u32 {
                     std.debug.print("{x}{x}{x}\n", .{r, g, b});
                 }
             },
+            stringToU32([_]u8{'I', 'D', 'A', 'T'}) => {
+                @memcpy(@constCast(data[0..chunkLen]), data[pos..pos+chunkLen]);
+                zlibLen += chunkLen;
+                pos += chunkLen;
+            },
             else => {
                 pos += chunkLen;
             }
@@ -67,6 +74,7 @@ pub fn pngToPalette(dataPointer: [*]const u8, dataLen: usize) ![]const u32 {
         pos += 4;
         std.debug.print("{any} {s} {any} {any}\n", .{chunkLen, u32ToString(chunkType), chunkData, crc});
     }
+    std.debug.print("{any}\n", .{data[0..zlibLen]});
 
     const u32pointer : [*]const u32 = @ptrCast(@alignCast(dataPointer));
     return u32pointer[0..@divFloor(dataLen, 4)];
