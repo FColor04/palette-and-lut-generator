@@ -6,6 +6,8 @@ A utility written in zig for generating color palettes and lookup tables from PN
 
 PngToPalette extracts color information from PNG files and generates color palettes and/or lookup tables (LUTs) that can be used in graphics programming, game development, or image processing applications.
 
+project in development
+
 ## Features
 
 - Extract color palettes from PNG images
