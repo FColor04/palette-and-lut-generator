@@ -26,5 +26,5 @@ jobs:
         prerelease: true
         make_latest: true
         files: |
-          zig-out/windows-x86_64
-          zig-out/linux-x86_64
+          zig-out/windows-x86_64/*
+          zig-out/linux-x86_64/*
