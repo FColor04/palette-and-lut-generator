@@ -46,8 +46,9 @@ pub fn main() !void {
         if (deinit_status == .leak) @panic("Memory leak. :(");
     }
 
-    var args = std.process.args();
-    _ = args.next(); // Discard program name arg
+    const args = try std.process.argsAlloc(allocator);
+    defer std.process.argsFree(allocator, args);
+
     var ignoreAlpha = false;
     var outputMode = OutputTypes.hexadecimalArray;
     var outputFilePath : ?[:0]const u8 = null;
@@ -55,19 +56,25 @@ pub fn main() !void {
     var output = try allocator.alloc(u32, 0);
     var outputOffset : u64 = 0;
     var processedArgs: u16 = 0;
-
-    while (args.next()) |arg| {
+    var i: u16 = 1;
+    while (i < args.len) {
+        defer i += 1;
         defer processedArgs += 1;
+        const arg = args[i];
 
         const data = if(arg.len > 1 and arg[0] == '-') arg[1..] else arg[0..];
         const flag = std.meta.stringToEnum(Flags, data) orelse std.debug.panic("Unknown flag {s}.", .{data});
         switch (flag) {
             .a, .alpha => {
-                const value = std.meta.stringToEnum(AlphaMode, args.next() orelse @panic("Expected value for path.")) orelse @panic("Unknown value for alpha channel flag.");
+                if(args.len <= i + 1) @panic("Expected value for path.");
+                const value = std.meta.stringToEnum(AlphaMode, args[i + 1]) orelse @panic("Unknown value for alpha channel flag.");
+                i += 1;
                 ignoreAlpha = value == .true;
             },
             .p, .path => {
-                const value = args.next() orelse @panic("Expected value for path flag.");
+                if(args.len <= i + 1) @panic("Expected value for path flag.");
+                const value = args[i + 1];
+                i += 1;
                 const fileData = try PngToPalette.loadFileAlloc(allocator, value);
                 defer allocator.free(fileData);
                 const colors = try PngToPalette.pngToPaletteAlloc(allocator, fileData.ptr, fileData.len, ignoreAlpha);
@@ -77,7 +84,9 @@ pub fn main() !void {
                 outputOffset += colors.len;
             },
             .d, .data => {
-                const value = args.next() orelse @panic("Expected value for data flag.");
+                if(args.len <= i + 1) @panic("Expected value for data flag.");
+                const value = args[i + 1];
+                i += 1;
                 const valueCopy = try allocator.dupe(u8, value);
                 const colors = try PngToPalette.pngToPaletteAlloc(allocator, valueCopy.ptr, valueCopy.len, ignoreAlpha);
 
@@ -86,10 +95,14 @@ pub fn main() !void {
                 outputOffset += colors.len;
             },
             .o, .output => {
-                const value = args.next() orelse @panic("Expected value for output flag.");
+                if(args.len <= i + 1) @panic("Expected value for output flag.");
+                const value = args[i + 1];
+                i += 1;
                 outputMode = std.meta.stringToEnum(OutputTypes, value) orelse std.debug.panic("Unknown output format type {s}.", .{value});
                 if(outputMode == .file){
-                    outputFilePath = args.next() orelse @panic("Also expected path value for output flag.");
+                    if(args.len <= i + 1) @panic("Also expected path value for output flag.");
+                    outputFilePath = args[i + 1];
+                    i += 1;
                 }
             },
             .h, .help => {
