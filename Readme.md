@@ -5,3 +5,5 @@ written in Zig
 - -p, -path
 - -d, -data
 - -o, -output
+
+todo
