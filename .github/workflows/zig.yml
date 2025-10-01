@@ -14,5 +14,17 @@ jobs:
       uses: jetsung/install-zig@v0.0.3
       with:
         version: 0.15.1
-    - name: Build
-      run: zig build --release=fast
+    - name: Build Windows
+      run: zig build -Dtarget=x86_64-windows -p "zig-out/windows-x86_64" --release=fast
+    - name: Build Linux
+      run: zig build -Dtarget=x86_64-linux -p "zig-out/linux-x86_64" --release=fast
+    - name: GH Release
+      uses: softprops/action-gh-release@v2.3.3
+      if: github.ref_type == 'tag'
+      with:
+        draft: false
+        prerelease: true
+        make_latest: true
+        files: |
+          zig-out/windows-x86_64
+          zig-out/linux-x86_64
