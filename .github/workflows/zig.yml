@@ -16,12 +16,12 @@ jobs:
         version: 0.15.1
     - name: Build Windows
       run: |
-        zig build -Dtarget=x86_64-windows -p "zig-out/windows-x86_64" --release=fast
-        7z a -tzip "zig-out/windows-x86_64.zip" "./zig-out/windows-x86-64/*"
+        zig build -Dtarget=x86_64-windows -p "./zig-out/windows-x86_64" --release=fast
+        7z a -tzip "./zig-out/windows-x86_64.zip" "./zig-out/windows-x86_64/*"
     - name: Build Linux
       run: |
-        zig build -Dtarget=x86_64-linux -p "zig-out/linux-x86_64" --release=fast
-        7z a -tzip "zig-out/linux-x86_64.zip" "./zig-out/linux-x86-64/*"
+        zig build -Dtarget=x86_64-linux -p "./zig-out/linux-x86_64" --release=fast
+        7z a -tzip "./zig-out/linux-x86_64.zip" "./zig-out/linux-x86_64/*"
     - name: GH Release
       uses: softprops/action-gh-release@v2.3.3
       if: ${{ startsWith(github.ref, 'refs/tags/') }}

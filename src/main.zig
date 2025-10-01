@@ -54,6 +54,7 @@ pub fn main() !void {
     var outputFilePath : ?[:0]const u8 = null;
 
     var output = try allocator.alloc(u32, 0);
+    defer allocator.free(output);
     var outputOffset : u64 = 0;
     var processedArgs: u16 = 0;
     var i: u16 = 1;
@@ -69,7 +70,7 @@ pub fn main() !void {
                 if(args.len <= i + 1) @panic("Expected value for path.");
                 const value = std.meta.stringToEnum(AlphaMode, args[i + 1]) orelse @panic("Unknown value for alpha channel flag.");
                 i += 1;
-                ignoreAlpha = value == .true;
+                ignoreAlpha = value != .true;
             },
             .p, .path => {
                 if(args.len <= i + 1) @panic("Expected value for path flag.");
@@ -78,7 +79,7 @@ pub fn main() !void {
                 const fileData = try PngToPalette.loadFileAlloc(allocator, value);
                 defer allocator.free(fileData);
                 const colors = try PngToPalette.pngToPaletteAlloc(allocator, fileData.ptr, fileData.len, ignoreAlpha);
-
+                defer allocator.free(colors);
                 output = try allocator.realloc(output, outputOffset + colors.len);
                 @memmove(output[outputOffset..], colors);
                 outputOffset += colors.len;
@@ -89,6 +90,7 @@ pub fn main() !void {
                 i += 1;
                 const valueCopy = try allocator.dupe(u8, value);
                 const colors = try PngToPalette.pngToPaletteAlloc(allocator, valueCopy.ptr, valueCopy.len, ignoreAlpha);
+                defer allocator.free(colors);
 
                 output = try allocator.realloc(output, outputOffset + colors.len);
                 @memmove(output[outputOffset..], colors);
@@ -117,14 +119,41 @@ pub fn main() !void {
     }else{
         switch (outputMode) {
             .hexadecimalArray => {
-                std.debug.print("{any}", .{output});
+                std.debug.print("[", .{});
+                for (output, 0..) |number, index| {
+                    if(index > 0)
+                        std.debug.print(",", .{});
+                    std.debug.print("{x}", .{if (ignoreAlpha) number >> 2 else number});
+                }
+                std.debug.print("]", .{});
             },
             .stringArray => {
-                std.debug.print("{any}", .{output});
+                std.debug.print("[", .{});
+                for (output, 0..) |number, outputIndex| {
+                    if(outputIndex > 0)
+                        std.debug.print(",", .{});
+                    const fixedLengthString = try allocator.alloc(u8, if (ignoreAlpha) 6 else 8);
+                    defer allocator.free(fixedLengthString);
+                    var charIndex : u5 = 0;
+                    for (fixedLengthString) |*char| {
+                        defer charIndex += 1;
+                        const hexIndex : u4 = @truncate(number >> 28 - 4 * charIndex);
+                        char.* = u4ToHexChar(hexIndex);
+                    }
+
+                    std.debug.print("\"#{s}\"", .{fixedLengthString});
+                }
+                std.debug.print("]", .{});
             },
             .file => {
                 std.debug.print("{any}", .{output});
             }
         }
     }
+}
+
+fn u4ToHexChar(input: u4) u8 {
+    if(input < 10)
+        return '0' + @as(u8, @intCast(input));
+    return 'A' + (@as(u8, @intCast(input)) - 10);
 }
