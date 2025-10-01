@@ -20,8 +20,7 @@ jobs:
       run: zig build -Dtarget=x86_64-linux -p "zig-out/linux-x86_64" --release=fast
     - name: GH Release
       uses: softprops/action-gh-release@v2.3.3
-      # if: github.ref_type == 'tag'
-      # idk how it works atm
+      if: github.ref_type == 'tag'
       with:
         draft: false
         prerelease: true
