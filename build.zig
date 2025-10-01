@@ -22,7 +22,19 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    const library = b.addLibrary(.{
+        .name = "PngToPalette",
+        .linkage = .dynamic,
+        // .version = .{ .major = 1, .minor = 0, .patch = 0},
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/root.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+
     b.installArtifact(exe);
+    b.installArtifact(library);
 
     const run_step = b.step("run", "Run the app");
 

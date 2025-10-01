@@ -21,10 +21,36 @@ const setType = std.HashMap(u32, void, U32Context, std.hash_map.default_max_load
 pub fn loadFileAlloc(allocator: Allocator, path: []const u8) ![]u8 {
     const file = try fs.cwd().openFile(path, .{});
     defer file.close();
+
     return try file.readToEndAlloc(allocator, 1024 * 1024 * 1024 * 2);
 }
 
-pub fn pngToPalette(allocator: Allocator, dataPointer: [*] u8, dataLen: usize, ignoreAlpha: bool) ![]const u32 {
+pub fn pngToPalette(dataPointer: [*] u8, dataLen: usize, ignoreAlpha: bool) []const u32 {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+
+    const colors = pngToPaletteAlloc(allocator, dataPointer, dataLen, ignoreAlpha) orelse [0]u32;
+    defer allocator.free(colors);
+
+    return colors;
+}
+
+pub fn loadPngToPalette(path: []const u8, ignoreAlpha: bool) ![]const u32 {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+
+    const data = try loadFileAlloc(allocator, path);
+    defer allocator.free(data);
+
+    const colors = try pngToPaletteAlloc(allocator, data.ptr, data.len, ignoreAlpha) orelse [0]u32;
+    defer allocator.free(colors);
+
+    return colors;
+}
+
+pub fn pngToPaletteAlloc(allocator: Allocator, dataPointer: [*] u8, dataLen: usize, ignoreAlpha: bool) ![]const u32 {
     assert(dataLen > 8);
     var data = dataPointer[0..dataLen];
     assert(std.mem.startsWith(u8, data, &magicNumber));
@@ -178,11 +204,6 @@ pub fn pngToPalette(allocator: Allocator, dataPointer: [*] u8, dataLen: usize, i
         }
     }
 
-    // var iterator = set.iterator();
-    // var string = try std.ArrayList(u8).initCapacity(allocator, 0);
-    // defer string.deinit(allocator);
-    // std.debug.print("{any} {s}\n", .{set.count(), try iteratorToString(&string, allocator, &iterator, setType.Iterator.next)});
-
     var itemSize : u32 = 32;
     var items = try allocator.alloc(u32, itemSize);
     var keys = set.keyIterator();
@@ -231,28 +252,8 @@ fn upperLeft(index: usize, stride: usize, bpp: usize, out: [*]const u8) u8 {
     return out[index - stride - bpp];
 }
 
-fn iteratorToString(string: *std.ArrayList(u8), allocator: Allocator, iterator: *setType.Iterator, input: fn (*setType.Iterator) ?setType.Entry) ![]u8 {
-    try string.appendSlice(allocator, "[");
-    var i : u32 = 0;
-    while (input(iterator)) |entry| {
-        if(i > 0)
-            try string.appendSlice(allocator, ", ");
-        const entryString = try std.fmt.allocPrint(allocator, "#{x}", .{entry.key_ptr.*});
-        defer allocator.free(entryString);
-        try string.appendSlice(allocator, entryString);
-
-        i += 1;
-    }
-    try string.appendSlice(allocator, "]");
-    return string.items;
-}
-
 fn stringToU32(input: [4]u8) u32 {
     return std.mem.readInt(u32, &input, .big);
-}
-
-fn u32ToString(input: u32) [4]u8 {
-    return [4]u8{@truncate(input >> 24), @truncate(input >> 16), @truncate(input >> 8), @truncate(input)};
 }
 
 fn parseU8be(data: u8) u8 {

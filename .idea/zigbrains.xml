@@ -44,6 +44,11 @@
           "module": 0
         }
       ]
+    },
+    {
+      "root": "src/root.zig",
+      "public": false,
+      "imports": []
     }
   ],
   "dependencies": []
