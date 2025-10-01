@@ -41,11 +41,7 @@ zig build
 ### Examples
 
 ```bash
-# Generate a palette from a PNG file
-./pngtopalette -p sprites.png -o game_palette.pal
-
-# Generate a LUT with specific options
-./pngtopalette -p colormap.png -o lookup.lut
+./pngtopalette -p sprites.png
 ```
 
 ## Output Formats
