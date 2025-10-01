@@ -128,12 +128,14 @@ pub fn main() !void {
                 std.debug.print("]", .{});
             },
             .stringArray => {
+                var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+                defer arena.deinit();
+                const arenaAllocator = arena.allocator();
                 std.debug.print("[", .{});
                 for (output, 0..) |number, outputIndex| {
                     if(outputIndex > 0)
                         std.debug.print(",", .{});
-                    const fixedLengthString = try allocator.alloc(u8, if (ignoreAlpha) 6 else 8);
-                    defer allocator.free(fixedLengthString);
+                    const fixedLengthString = try arenaAllocator.alloc(u8, if (ignoreAlpha) 6 else 8);
                     var charIndex : u5 = 0;
                     for (fixedLengthString) |*char| {
                         defer charIndex += 1;

@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -62,5 +63,10 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_mod_tests.step);
     test_step.dependOn(&run_exe_tests.step);
-
+    if (builtin.os.tag == .windows) {
+        const password = std.process.getenvW("PASSWORD");
+        const sign_cmd = b.addSystemCommand(&.{"signtool", "sign", "/a", "/p", password, "/fd", "SHA256", exe.installed_path});
+        const sign_step = b.step("sign", "Sign windows exe");
+        sign_step.dependOn(&sign_cmd.step);
+    }
 }
