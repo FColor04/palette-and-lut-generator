@@ -64,10 +64,11 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_mod_tests.step);
     test_step.dependOn(&run_exe_tests.step);
     if (builtin.os.tag == .windows) {
+        const sign_step = b.step("sign", "Sign windows exe");
+        sign_step.dependOn(run_step);
         if(exe.installed_path) |path| {
             // const password = std.process.getenvW("PASSWORD");
             const sign_cmd = b.addSystemCommand(&.{"signtool", "sign", "/a", "/fd", "SHA256", path});
-            const sign_step = b.step("sign", "Sign windows exe");
             sign_step.dependOn(&sign_cmd.step);
         }
     }
